@@ -6,3 +6,11 @@ compatibility_date = "2026-11-13"
 GITHUB_REPOSITORY = "C0verSnow/shared-video-transcriber"
 GITHUB_REF = "main"
 GITHUB_WORKFLOW = "transcribe.yml"
+
+[[durable_objects.bindings]]
+name = "TELEGRAM_ALLOWLIST"
+class_name = "TelegramAllowlist"
+
+[[migrations]]
+tag = "allowlist-v1"
+new_sqlite_classes = ["TelegramAllowlist"]
