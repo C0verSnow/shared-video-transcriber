@@ -28,7 +28,17 @@ flowchart LR
 
 ## Telegram 和 CI 配置
 
-Webhook 文件为 `worker/index.js`，入口 `POST /telegram`。设置 Telegram 的 `secret_token` 与 Worker 的 `TELEGRAM_WEBHOOK_SECRET` 一致，仅允许 `TELEGRAM_ALLOWED_USER_IDS` 中的用户在私聊触发任务。
+Webhook 文件为 `worker/index.js`，入口 `POST /telegram`。设置 Telegram 的 `secret_token` 与 Worker 的 `TELEGRAM_WEBHOOK_SECRET` 一致。`TELEGRAM_ALLOWED_USER_IDS` 填唯一的管理员数字 ID。首次部署只允许管理员使用，后续白名单保存在 Worker 的 Durable Object 中。
+
+管理员在机器人私聊中使用以下指令。
+
+| 指令 | 作用 |
+|---|---|
+| `/allow 用户ID` | 允许该用户在私聊中提交转录任务 |
+| `/deny 用户ID` | 撤销该用户的提交和结果接收权限 |
+| `/allowlist` | 查看包括管理员在内的白名单 |
+
+管理员始终保有权限。被添加的用户可在与机器人的私聊中发送抖音链接。CI 回传前再检查该用户的权限。
 
 | 位置 | 配置 |
 |---|---|
@@ -39,7 +49,9 @@ Webhook 文件为 `worker/index.js`，入口 `POST /telegram`。设置 Telegram 
 | Infisical `/douyin-transcriber/webhook` | `TELEGRAM_BOT_TOKEN`、`TELEGRAM_WEBHOOK_SECRET`、`TELEGRAM_ALLOWED_USER_IDS`、`GITHUB_DISPATCH_TOKEN` |
 | Worker 非敏感配置 | 仓库、`GITHUB_REF=main`、`GITHUB_WORKFLOW=transcribe.yml` |
 
-Worker 密钥通过 Infisical 官方 Cloudflare Secret Sync 分发。`GITHUB_DISPATCH_TOKEN` 使用仅能对本仓库执行 Actions dispatch 的令牌。不要复用其他机器人的 webhook，不要把 R2 密钥或档案解密密钥同步到 Worker。
+Worker 密钥通过 Infisical 官方 Cloudflare Secret Sync 分发。`GITHUB_DISPATCH_TOKEN` 可以用只选中本仓库并授予 Actions 读写权限的 Fine-grained token，也可以用具有 `repo` scope 的 Classic token。Classic token 所属账号须能写入目标仓库，`repo` scope 也会覆盖该账号有权访问的其他仓库。[GitHub 派发权限说明](https://docs.github.com/en/rest/actions/workflows#create-a-workflow-dispatch-event)
+
+不要复用其他机器人的 webhook，不要把 R2 密钥或档案解密密钥同步到 Worker。
 
 CI 使用 `.github/workflows/transcribe.yml`。每次从 R2 恢复档案，验证登录后读取抖音页面返回的视频地址，下载音视频并用 FFmpeg 提取 16 kHz 单声道音轨，调用 whisper.cpp 转文字。完整 TXT、SRT、JSON 分别发回 Telegram；视频和音轨仅是中间文件，不作为结果发送。会话和文字稿不上传 GitHub Artifacts，也不放进 Actions 缓存。
 

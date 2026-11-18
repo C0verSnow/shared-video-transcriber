@@ -51,6 +51,7 @@ jobs:
         run: |
           bash scripts/install-infisical.sh
           node scripts/ci-secrets.mjs
+          INFISICAL_SECRET_PATH="$INFISICAL_SECRET_PATH/webhook" node scripts/ci-secrets.mjs
       - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v6
         id: image
@@ -105,6 +106,8 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ inputs.chat_id }}
           VIDEO_RESULT_DIR: /results
         run: |
+          TELEGRAM_ALLOWED_USER_IDS=$(node scripts/authorize-telegram-delivery.mjs)
+          export TELEGRAM_ALLOWED_USER_IDS
           docker run --rm --network host -v /tmp/douyin-results:/results:ro \
             -e TELEGRAM_BOT_TOKEN -e TELEGRAM_ALLOWED_USER_IDS -e TELEGRAM_CHAT_ID -e VIDEO_RESULT_DIR \
             shared-video-transcriber:job telegram-deliver

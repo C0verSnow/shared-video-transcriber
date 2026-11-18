@@ -1,5 +1,17 @@
 # 本文档为4象限的任务清单，全文书写大白话
 
+## 问题及解决模板：GitHub 令牌能读工作流，但不能启动工作流
+
+- [1795007649] 遇到的问题：机器人反复回复“CI 暂时无法启动”，Telegram 记录 Worker 返回 502，生产工作流没有收到任务。通用解决步骤：先查 Telegram 的 webhook 投递状态，再核对线上 Worker 的仓库、分支和工作流。用 Infisical 中的派发令牌访问同一个 GitHub 接口，故意省略必填参数，避免真正启动任务。如果 GitHub 返回 403 并要求 `actions=write`，核对令牌是否对目标仓库授予 Actions 的读写权限。
+
+## 问题及解决模板：Classic 令牌可以派发，但也可能带无关权限
+
+- [1795008243] 遇到的问题：用户提供的 Classic 令牌通过派发权限检查，但同时拥有组织管理、删除仓库等权限。通用解决步骤：用 GitHub 响应头核对 Classic 令牌的 scope，派发工作流只需要 `repo` 和账号对目标仓库的写权限。先验证替换令牌，再写入密钥库并观察同步结果。
+
+## 问题及解决模板：密钥库里同名的值可能不同
+
+- [1795008718] 遇到的问题：应用目录和 webhook 子目录都有 `TELEGRAM_WEBHOOK_SECRET`，但两个值不同。通用解决步骤：只比较值是否相同，别打印值。Worker 和调用其鉴权接口的 CI 从原有 webhook 子目录读取，确保使用同一个同步来源。
+
 ## 问题及解决模板：上层目录不是目标仓库
 
 - [1794628695] 遇到的问题：工作目录不是 Git 仓库，也没有本次目标仓库；通用解决步骤：先核对目录，再克隆 issue 指向的仓库，在 feature 分支操作，不改旁边项目。
@@ -38,6 +50,11 @@
 
 ## 做完：
 
+- [1795008718] 经用户确认，将已验证可派发的 Classic 令牌写入 Infisical。回读值一致，Cloudflare 自动同步成功。Telegram 重投的两条消息都收到受理回复，GitHub 创建了两个生产转录任务。
+- [1795008718] 核对当前管理员 ID 与 Infisical 的配置一致。实现管理员私聊增删和查看白名单，动态成员用 Cloudflare Durable Object 保存。CI 发送文字稿前查询同一份名单。存储设计参考 [Cloudflare Durable Objects 文档](https://developers.cloudflare.com/durable-objects/best-practices/create-durable-object-stubs-and-send-requests/)。
+- [1795008243] 按用户要求更新 README，允许使用含 `repo` scope 的 Classic 令牌派发。已在 GitHub 派发接口实测 Classic 令牌通过权限检查，缺少必填字段时返回 422，测试没有创建工作流任务。
+- [1795007649] 核对线上 Worker 的配置，目标为 `C0verSnow/shared-video-transcriber` 仓库的 `main` 分支和 `transcribe.yml`。Infisical 里的 GitHub 令牌有效，但调用派发接口得到 403，响应写明需要 `actions=write`。这与线上收到的 502 和机器人反复提示无法启动 CI 相符。
+- [1795007530] 在 GitHub 查到 PR #2 已合并，生产转录工作流已启用，但没有运行记录。Telegram 的 webhook 指向预期的 Cloudflare Worker，机器人身份验证成功。Telegram 当时有两条消息待投递，最近一次收到 Worker 返回的 502。
 - [1794651596] 用户给的 https://v.douyin.com/4IanPT1B4wI/ 已在远端真实转写成功，代码 d44d0c6，CI 五项任务全部通过：https://github.com/C0verSnow/shared-video-transcriber/actions/runs/43560354503 。同一份生产转录 workflow 通过 workflow_call 在 feature 分支运行，没有另抄转录逻辑。
 - [1794651596] 首轮真实测试在加入 Tailscale 时失败；检索官方源码确认启动时节点列表尚未可用，改成先加入网络再选择出口，使用同一条链接复验成功。首次 Docker 扫码登录未强制中国出口，本次 CI 登录态检查和取视频使用已经核对为中国大陆的 armbian 出口，发 Telegram 前退出该出口。
 - [1794651596] 已从机器人实际收到并取回 transcript.txt、transcript.srt、result.json；视频标题对应“认知和财富的转化”，TXT 为 4924 字节、1756 个字符（含换行），JSON 有 143 段，最后时间为 263.8 秒，TXT 与 JSON 正文一致。保留原始识别稿，发现“俞敏洪”等人名及部分同音词有错字，没有冒充人工校对稿。
@@ -55,6 +72,7 @@
 
 ## 没做：
 
+- [1795007649] 本轮只排查，没改令牌、Worker 或生产配置，没发送 Telegram 测试消息，没启动转录，也没有本地编译或构建。
 - [1794632806] 没有本地 Rust/Docker 编译、构建或业务冒烟；曾误执行一次包含 JavaScript 本地打包的 Wrangler dry-run，已向用户说明并记录问题模板，不能宣称完全没有本地打包。后续 Worker 上传使用 --no-bundle，编译和测试放远端。
 - [1794651596] 没有合并 PR；新增转录 workflow 尚未进入默认分支，因此还没验收“发 Telegram 链接自动派发生产任务”这一入口。真实视频从远端获取到文字稿返回 Telegram 已经通过可复用 workflow 实测。
 - [1794651596] 本轮没有执行本地编译、构建或业务测试，只读取代码、核对差异、从 Telegram 下载并阅读远端结果。GitHub 已检索 Tailscale 官方源码，确认启动阶段不能按主机名找出口的原因；依据链接已写入 docs/DESIGN.md。
@@ -62,4 +80,5 @@
 
 ## 在做：
 
+- [1795008718] 等远端 CI 核对白名单的初始状态、管理员增删、普通用户权限，以及 CI 的结果交付检查。
 - [1794651596] 本轮真实链接测试已完成，没有继续运行的登录或转写任务；等待用户 review PR。
