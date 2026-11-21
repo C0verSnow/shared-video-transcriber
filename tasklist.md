@@ -50,6 +50,8 @@
 
 ## 做完：
 
+- [1795009228] 白名单的 webhook、Rust 和 Docker 回归在 [远端 CI](https://github.com/C0verSnow/shared-video-transcriber/actions/runs/44314767386) 通过。[PR #3](https://github.com/C0verSnow/shared-video-transcriber/pull/3) 已合并，Worker 用 `--no-bundle` 上传。在线接口允许已核对的管理员 ID，拒绝未列入的 ID 和错误密钥。上线前的真实转录任务也已成功发回三个文件和完成提示。
+- [1795009228] 在 GitHub 的 Cloudflare Workers SDK 源码检索到 `new_sqlite_classes` 的配置实现。按 Cloudflare 文档在原来的 Wrangler 配置中声明 SQLite Durable Object，沿用仓库已有的 Node 远端测试。
 - [1795008718] 经用户确认，将已验证可派发的 Classic 令牌写入 Infisical。回读值一致，Cloudflare 自动同步成功。Telegram 重投的两条消息都收到受理回复，GitHub 创建了两个生产转录任务。
 - [1795008718] 核对当前管理员 ID 与 Infisical 的配置一致。实现管理员私聊增删和查看白名单，动态成员用 Cloudflare Durable Object 保存。CI 发送文字稿前查询同一份名单。存储设计参考 [Cloudflare Durable Objects 文档](https://developers.cloudflare.com/durable-objects/best-practices/create-durable-object-stubs-and-send-requests/)。
 - [1795008243] 按用户要求更新 README，允许使用含 `repo` scope 的 Classic 令牌派发。已在 GitHub 派发接口实测 Classic 令牌通过权限检查，缺少必填字段时返回 422，测试没有创建工作流任务。
@@ -72,6 +74,7 @@
 
 ## 没做：
 
+- [1795009228] 没有在生产白名单里添加其他用户。用远端回归测试增删和越权处理，用线上鉴权接口确认初始权限。没有本地编译或构建验证。
 - [1795007649] 本轮只排查，没改令牌、Worker 或生产配置，没发送 Telegram 测试消息，没启动转录，也没有本地编译或构建。
 - [1794632806] 没有本地 Rust/Docker 编译、构建或业务冒烟；曾误执行一次包含 JavaScript 本地打包的 Wrangler dry-run，已向用户说明并记录问题模板，不能宣称完全没有本地打包。后续 Worker 上传使用 --no-bundle，编译和测试放远端。
 - [1794651596] 没有合并 PR；新增转录 workflow 尚未进入默认分支，因此还没验收“发 Telegram 链接自动派发生产任务”这一入口。真实视频从远端获取到文字稿返回 Telegram 已经通过可复用 workflow 实测。
@@ -80,5 +83,5 @@
 
 ## 在做：
 
-- [1795008718] 等远端 CI 核对白名单的初始状态、管理员增删、普通用户权限，以及 CI 的结果交付检查。
+- [1795009228] 机器人和白名单已经上线。分支 CI 的真实档案恢复检查及另一条原有的转录任务仍由 GitHub Actions 执行。
 - [1794651596] 本轮真实链接测试已完成，没有继续运行的登录或转写任务；等待用户 review PR。
